@@ -1,4 +1,8 @@
 cmake_minimum_required(VERSION 2.6)
 project(s)
+set(CMAKE_C_FLAGS "-Wall -Wextra -pedantic -std=gnu99")
 add_executable(s main.c)
 add_executable(cat cat.c)
+add_executable(hexdump hexdump.c)
+add_executable(whoami whoami.c)
+add_executable(mkdir mkdir.c)
