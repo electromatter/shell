@@ -102,8 +102,6 @@ int print_numbers_and_ends(char *buf, size_t size, struct options *opts)
 
 void write_output(char *buf, size_t size, struct options *opts)
 {
-    char *numbered;
-
     do_squeeze(buf, &size, opts);
 
     if (print_numbers_and_ends(buf, size, opts))
@@ -142,7 +140,8 @@ void do_cat(const char *name, struct options *opts)
 int main(int argc, char **argv)
 {
     int i, arg;
-    struct options o = {};
+    struct options o;
+    memset(&o, 0, sizeof(o));
     for (i = 1; i < argc && (arg = match_arg(argv[i])); i++) {
         switch (arg) {
         case 'b':
