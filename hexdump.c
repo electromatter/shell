@@ -1,7 +1,7 @@
-#include<stdio.h>
-#include<ctype.h>
-#include<stdlib.h>
-#include<assert.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <assert.h>
 #include <string.h>
 #include <errno.h>
 
@@ -77,12 +77,12 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		offset = do_hexdump(buf, size, offset);
+		offset = do_hexdump((void *)buf, size, offset);
 		size = 0;
 	}
 
 	if (size > 0)
-		offset = do_hexdump(buf, size, offset);
+		offset = do_hexdump((void *)buf, size, offset);
 
 	if (offset > 0)
 		printf("%08zx\n", offset);
