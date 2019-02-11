@@ -1,2 +1,12 @@
 .*.s[a-z][a-z]
 build/
+*.o
+
+# Programs
+shell
+cat
+hexdump
+mkdir
+ps
+rmdir
+whoami
