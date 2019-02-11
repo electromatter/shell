@@ -17,6 +17,7 @@ sig_atomic_t should_wait = 0;
 
 void sigchld_handler(int sig)
 {
+    (void)sig;
     should_wait = 1;
 }
 
@@ -142,6 +143,7 @@ extern char **environ;
 int main(int argc, char **argv)
 {
     pid_t child;
+    (void) argc; (void) argv;
     while (1) {
         char **cmd = read_command();
         char *path = cmd ? find_on_path(cmd[0]) : NULL;
@@ -160,7 +162,7 @@ int main(int argc, char **argv)
             free_args(cmd);
             free(path);
             int status;
-            pid_t done = wait(&status);
+            wait(&status);
             printf("Exited: %d\n", status);
         } else if (child < 0) {
             perror("no fork");
