@@ -58,7 +58,6 @@ int main(int argc, char *argv[])
 	DIR *dir;
 	struct dirent *ent;
 	int pid;
-	char name[32];
 	int show_all = 0;
 	int i;
 
