@@ -7,8 +7,11 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
+
+#include "aprintf.h"
 
 sig_atomic_t should_wait = 0;
 
@@ -77,22 +80,85 @@ void free_args(char **args)
     free(args);
 }
 
+int exists(const char *name)
+{
+    struct stat sb;
+    return stat(name, &sb) == 0;
+}
+
+char *slice(const char *str, size_t len)
+{
+    char *buf = malloc(len + 1), *ptr;
+    if (!buf)
+        return NULL;
+    strncpy(buf, str, len);
+    buf[len] = 0;
+    ptr = realloc(buf, strlen(buf) + 1);
+    return !ptr ? buf : ptr;
+}
+
+char *find_on_path(const char *cmd)
+{
+    const char *path, *end;
+    char *name, *prefix;
+    size_t prefix_len;
+
+    if (strchr(cmd, '/'))
+        return strdup(cmd);
+
+    path = getenv("PATH");
+    while (path) {
+        end = strchr(path, ':');
+        if (!end) {
+            prefix_len = strlen(path);
+        } else {
+            prefix_len = end - path;
+        }
+
+        if (!prefix_len) {
+            prefix = strdup(".");
+        } else {
+            prefix = slice(path, prefix_len);
+        }
+
+        if (!prefix)
+            return NULL;
+
+        name = asprintf("%s/%s", prefix, cmd);
+
+        free(prefix);
+
+        if (name && exists(name))
+            return name;
+
+        free(name);
+        path = end ? end + 1 : NULL;
+    }
+    return NULL;
+}
+
+extern char **environ;
+
 int main(int argc, char **argv)
 {
     pid_t child;
     while (1) {
         char **cmd = read_command();
-        if (!cmd)
+        char *path = cmd ? find_on_path(cmd[0]) : NULL;
+        if (!path || !cmd) {
+            free_args(cmd);
+            free(path);
             continue;
+        }
         child = fork();
         if (child == 0) {
-            char *const env[] = {NULL};
-            if (execve(cmd[0], cmd, env) < 0) {
+            if (execve(path, cmd, environ) < 0) {
                 perror("no exec");
                 abort();
             }
         } else if (child > 0) {
             free_args(cmd);
+            free(path);
             int status;
             pid_t done = wait(&status);
             printf("Exited: %d\n", status);
