@@ -23,7 +23,7 @@ static inline char *avsprintf(const char *fmt, va_list args)
 	if (buf == NULL)
 		return NULL;
 
-	if (vsnprintf(buf, real_size, fmt, args) != real_size) {
+	if (vsnprintf(buf, real_size + 1, fmt, args) != real_size) {
 		free(buf);
 		return NULL;
 	}
