@@ -48,26 +48,28 @@ void show_process(pid_t pid, int show_all)
 	printf("\n");
 }
 
-static const struct arg_def args[] = {
-	{'A', NULL},
-	{0, NULL},
-};
-
 int main(int argc, char *argv[])
 {
+	struct arg_state arg_state;
+	const char *arg;
 	DIR *dir;
 	struct dirent *ent;
 	int pid;
 	int show_all = 0;
-	int i;
+	int c;
 
-	for (i = 1; i < argc; i++) {
-		switch (match_arg(args, argv[i])) {
+	start_args(&arg_state, NULL, argc, argv, 1);
+	while ((c = next_arg(&arg_state, &arg))) {
+		switch (c) {
 		case 'A':
 			show_all = 1;
 			break;
+		case ARG_WORD:
+		case ARG_UNKNOWN_LONG:
+			fprintf(stderr, "ps: unknown argument: '%s'\n", arg);
+			return 1;
 		default:
-			fprintf(stderr, "Unknown argument: '%s'\n", argv[i]);
+			fprintf(stderr, "ps: unknown argument: '%c'\n", (char)c);
 			return 1;
 		}
 	}

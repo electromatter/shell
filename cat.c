@@ -10,31 +10,15 @@
 #include <fcntl.h>
 #include <errno.h>
 
-struct arg {
-    char single;
-    const char *argument;
-};
+#include "arg.h"
 
-static const struct arg args[] = {
+static const struct long_def long_args[] = {
     {'b', "--number-nonblank"},
     {'E', "--show-ends"},
     {'n', "--number"},
     {'s', "--squeeze-blank"},
-    {'-', "--"},
     {0, NULL},
 };
-
-int match_arg(const char *arg)
-{
-    char short_arg[3] = "-*";
-    const struct arg *cur;
-    for (cur = &args[0]; cur->single; cur++) {
-        short_arg[1] = cur->single;
-        if (!strcmp(arg, short_arg) || !strcmp(arg, cur->argument))
-            return cur->single;
-    }
-    return 0;
-}
 
 struct options {
     int number_non_empty;
@@ -107,43 +91,43 @@ void write_output(char *buf, size_t size, struct options *opts)
     if (print_numbers_and_ends(buf, size, opts))
         return;
 
-    write(STDOUT_FILENO, buf, size);
+    fwrite(buf, 1, size, stdout);
 }
 
 void do_cat(const char *name, struct options *opts)
 {
-    int fd;
-    char buf[10];
-    ssize_t ret;
+    static char buf[1024 * 1024];
+    FILE *file;
 
     if (!strcmp(name, "-")) {
-        fd = STDIN_FILENO;
+        file = stdin;
     } else {
-        fd = open(name, O_RDONLY);
-        if (fd < 0) {
+        file = fopen(name, "rb");
+        if (file == NULL) {
             fprintf(stderr, "Could not open %s: %s", name, strerror(errno));
             return;
         }
     }
 
-    while (1) {
-        ret = read(fd, buf, sizeof(buf));
-        if (ret <= 0)
-            break;
-        write_output(buf, ret, opts);
-    }
+    while (fgets(buf, sizeof(buf), file))
+        write_output(buf, strlen(buf), opts);
 
-    if (fd != STDIN_FILENO)
-        close(fd);
+    if (file != stdin)
+        fclose(file);
 }
 
 int main(int argc, char **argv)
 {
-    int i, arg;
+    int c, has_files;
+    const char *arg;
+    struct arg_state arg_state;
     struct options o;
     memset(&o, 0, sizeof(o));
-    for (i = 1; i < argc && (arg = match_arg(argv[i])); i++) {
-        switch (arg) {
+
+    has_files = 0;
+    start_args(&arg_state, long_args, argc, argv, 1);
+    while ((c = next_arg(&arg_state, &arg))) {
+        switch (c) {
         case 'b':
             o.number_non_empty = 1;
             o.number = 0;
@@ -158,23 +142,21 @@ int main(int argc, char **argv)
         case 's':
             o.squeeze = 1;
             break;
-        case '-':
-            goto files;
+        case ARG_WORD:
+            do_cat(arg, &o);
+            has_files = 1;
             break;
+	case ARG_UNKNOWN_LONG:
+            fprintf(stderr, "cat: unknown argument '%s'\n", arg);
+            return 1;
         default:
-            abort();
+            fprintf(stderr, "cat: unknown argument '%c'\n", (char)c);
+            return 1;
         }
     }
 
-files:
-
-    if (i == argc) {
+    if (!has_files)
         do_cat("-", &o);
-    }
-
-    for (; i < argc; i++) {
-        do_cat(argv[i], &o);
-    }
 
     return 0;
 }

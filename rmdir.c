@@ -40,32 +40,39 @@ int do_rmdir_parents(char *name)
 	return ret;
 }
 
-static const struct arg_def args[] = {
+static const struct long_def long_args[] = {
 	{'p', "--parents"},
-	{'-', "--"},
 	{0, NULL},
 };
 
 int main(int argc, char *argv[])
 {
+	struct arg_state arg_state;
+	const char *arg;
+	int c;
 	int ret = 0;
 	int parents = 0;
-	int i;
-	for (i = 1; i < argc; i++) {
-		switch (match_arg(args, argv[i])) {
+
+	start_args(&arg_state, long_args, argc, argv, 1);
+	while ((c = next_arg(&arg_state, &arg))) {
+		switch (c) {
 		case 'p':
 			parents = 1;
 			break;
+		case ARG_WORD:
+			if (parents)
+				ret |= do_rmdir_parents((char *)arg);
+			else
+				ret |= do_rmdir(arg);
+			break;
+		case ARG_UNKNOWN_LONG:
+			fprintf(stderr, "ps: unknown argument: '%s'\n", arg);
+			return 1;
 		default:
-			goto end_args;
+			fprintf(stderr, "ps: unknown argument: '%c'\n", (char)c);
+			return 1;
 		}
 	}
-end_args:
-	for (; i < argc; i++) {
-		if (parents)
-			ret |= do_rmdir_parents(argv[i]);
-		else
-			ret |= do_rmdir(argv[i]);
-	}
+
 	return ret;
 }

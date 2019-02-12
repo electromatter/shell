@@ -57,43 +57,43 @@ static int do_mkdir_parents(char *name, int verbose)
 	return err;
 }
 
-static const struct arg_def mkdir_args[] = {
+static const struct long_def long_args[] = {
 	{'v', "--verbose"},
 	{'p', "--parents"},
-	{'-', "--"},
 	{0, NULL}
 };
 
 int main(int argc, char **argv)
 {
+	struct arg_state arg_state;
+	const char *arg;
+	int c;
 	int parents = 0;
 	int verbose = 0;
 	int err = 0;
-	int i;
 
-	for (i = 1; i < argc; i++) {
-		switch (match_arg(mkdir_args, argv[i])) {
+	start_args(&arg_state, long_args, argc, argv, 1);
+	while ((c = next_arg(&arg_state, &arg))) {
+		switch (c) {
 		case 'v':
 			verbose = 1;
 			break;
 		case 'p':
 			parents = 1;
 			break;
-		case '-':
-			i++;
-			goto args_done;
+		case ARG_WORD:
+			if (parents) {
+				err |= do_mkdir_parents((char *)arg, verbose);
+			} else {
+				err |= do_mkdir((char *)arg, 1, verbose);
+			}
+			break;
+		case ARG_UNKNOWN_LONG:
+			fprintf(stderr, "mkdir: unknown argument: '%s'\n", arg);
+			return 1;
 		default:
-			goto args_done;
-		}
-	}
-
-args_done:
-
-	for (; i < argc; i++) {
-		if (parents) {
-			err |= do_mkdir_parents(argv[i], verbose);
-		} else {
-			err |= do_mkdir(argv[i], 1, verbose);
+			fprintf(stderr, "mkdir: unknown argument: '%c'\n", (char)c);
+			return 1;
 		}
 	}
 
